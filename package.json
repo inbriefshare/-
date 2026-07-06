@@ -1,0 +1,16 @@
+{
+  "name": "inbriefshare",
+  "version": "1.0.0",
+  "description": "Safety education workbook purchase page",
+  "private": true,
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'No build step required for static HTML'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^1.1.1"
+  }
+}
