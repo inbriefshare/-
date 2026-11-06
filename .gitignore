@@ -1,0 +1,13 @@
+node_modules/
+.vercel
+.env*
+
+.vercel
+.env*
+
+# 내부 자료(원가표·계좌·직인) - 공개 저장소/사이트에 올리지 않음
+*.xlsx
+
+# 원본 표지(images/covers로 복사해 씀)와 디자인 기록
+책외관/
+.hallmark/
