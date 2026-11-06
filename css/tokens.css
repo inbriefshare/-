@@ -1,0 +1,49 @@
+/* Hallmark · tokens · 상상력놀이터 워크북 페이지
+ * 강조색은 챗봇(chatbot.js BLUE #2454CC)과 같은 값이다. 바꿀 때는 두 곳을 같이 바꾼다.
+ */
+:root {
+  --color-paper:      oklch(99% 0.002 260);   /* 거의 흰 종이 */
+  --color-paper-2:    oklch(96.8% 0.004 262); /* 구역 바탕 */
+  --color-ink:        oklch(20.8% 0.015 262); /* #14181F */
+  --color-ink-2:      oklch(44% 0.022 260);   /* 보조 글자, 흰 바탕 7:1 이상 */
+  --color-rule:       oklch(90% 0.008 261);   /* 가는 선 */
+  --color-rule-2:     oklch(80% 0.012 261);   /* 진한 선, 입력·점선 */
+  --color-accent:     oklch(49.1% 0.193 264); /* #2454CC */
+  --color-accent-2:   oklch(40.8% 0.163 265); /* 눌림·마우스 올림 */
+  --color-accent-ink: oklch(100% 0 0);
+  --color-accent-wash: oklch(95.5% 0.025 264);/* 강조 옅은 바탕 */
+  --color-focus:      oklch(80.9% 0.167 82);  /* #F5B400, 챗봇 포커스와 같음 */
+  --color-foot:       oklch(20.8% 0.015 262);
+  --color-foot-ink:   oklch(86% 0.01 260);
+  --color-foot-dim:   oklch(72% 0.012 260);   /* 검정 바탕 6:1 이상 */
+
+  --font-display: "Noto Serif KR", "Nanum Myeongjo", serif;
+  --font-body: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+  --text-xs: 0.875rem;  /* 14 */
+  --text-sm: 1rem;      /* 16 */
+  --text-md: 1.0625rem; /* 17 본문 */
+  --text-lg: 1.25rem;   /* 20 */
+  --text-xl: 1.5rem;    /* 24 */
+  --text-2xl: clamp(1.625rem, 1.2rem + 1.6vw, 2.25rem);
+  --text-display: clamp(2rem, 1.25rem + 3.4vw, 3.5rem);
+
+  --space-3xs: 0.25rem; --space-2xs: 0.5rem; --space-xs: 0.75rem;
+  --space-sm: 1rem;     --space-md: 1.5rem;  --space-lg: 2rem;
+  --space-xl: 3rem;     --space-2xl: 4.5rem; --space-3xl: 7rem;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --rule: 1px solid var(--color-rule);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-short: 160ms;
+  --dur-med: 240ms;
+
+  --measure: 34em;
+  --page-max: 1120px;
+  --gutter: clamp(1.25rem, 5vw, 3rem);
+  --bar-h: 64px; /* 휴대폰 하단 고정 바 높이 */
+}
