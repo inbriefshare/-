@@ -228,7 +228,6 @@
           while (sum.firstChild) sum.removeChild(sum.firstChild);
           if (!q.totalQty) { sum.textContent = "수량을 입력하면 금액이 계산됩니다."; return; }
           sum.appendChild(document.createTextNode("총 " + won(q.totalQty) + "권 · 배송비 " + (q.shipping ? won(q.shipping) + "원" : "무료")));
-          if (q.discounted) sum.appendChild(document.createTextNode(" · 5% 할인(-" + won(q.discountAmount) + "원)"));
           sum.appendChild(el("br"));
           sum.appendChild(document.createTextNode("합계 "));
           sum.appendChild(el("b", null, won(q.total) + "원"));

@@ -114,6 +114,8 @@ export default async function handler(req, res) {
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("")
+      .replace(/\*\*(.+?)\*\*/g, "$1") // 챗봇 창은 마크다운을 그리지 않으므로 굵게·제목 기호를 지운다
+      .replace(/^#{1,6}\s+/gm, "")
       .trim();
 
     const formCall = response.content.find((b) => b.type === "tool_use" && b.name === "submit_quote_request");
