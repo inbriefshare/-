@@ -27,8 +27,6 @@ export const PRODUCTS = [
 ];
 
 export const RULES = {
-  discountMinQty: 500, // 총 권수가 이 이상이면 할인
-  discountRate: 0.05, // 5% 할인
   freeShippingMinQty: 100, // 총 권수가 이 이상이면 배송비 무료
   shippingFee: 7000, // 그 미만일 때 배송비
   validDays: 30, // 견적 유효기간(일)
@@ -49,19 +47,16 @@ export function computeQuote(qty) {
       totalQty += n;
     }
   }
-  const discounted = totalQty >= RULES.discountMinQty;
+  // 수량 할인은 없다. 몇 권이든 정가로 계산한다.
   for (const l of lines) {
-    l.unitPrice = discounted ? Math.round(l.listPrice * (1 - RULES.discountRate)) : l.listPrice;
+    l.unitPrice = l.listPrice;
     l.amount = l.unitPrice * l.qty;
   }
   const itemsTotal = lines.reduce((s, l) => s + l.amount, 0);
-  const listTotal = lines.reduce((s, l) => s + l.listPrice * l.qty, 0);
   const shipping = totalQty > 0 && totalQty < RULES.freeShippingMinQty ? RULES.shippingFee : 0;
   return {
     lines,
     totalQty,
-    discounted,
-    discountAmount: listTotal - itemsTotal,
     itemsTotal,
     shipping,
     total: itemsTotal + shipping,

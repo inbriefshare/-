@@ -216,23 +216,13 @@ export async function buildQuotePdf({ quoteNo, date, customer, quote, stampPng }
   box(L + sumW + cols[3].w, y, cols[4].w + cols[5].w, ih);
   text(won(quote.total), RIGHT - 6, y + 8, { size: 10.5, font: B, align: "right" });
 
-  if (quote.discounted) {
-    y -= 16;
-    text(
-      `※ 총 ${won(quote.totalQty)}권(${RULES.discountMinQty}권 이상) 주문으로 정가 대비 ${Math.round(RULES.discountRate * 100)}% 할인이 적용된 단가입니다. (할인액 ${won(quote.discountAmount)}원)`,
-      L,
-      y,
-      { size: 8.5, color: BLUE, maxWidth: RIGHT - L },
-    );
-  }
-
   // 비고
   y -= 30;
   text("비고", L, y, { size: 10.5, font: B });
   const hours = PRODUCTS.map((p) => (p.name.match(/\d+권/) || [p.name])[0] +` ${p.hours}시간`).join(" · ");
   const notes = [
     "도서(부가세 면세) 상품으로 부가세가 없습니다.",
-    `총 ${RULES.discountMinQty}권 이상 주문 시 ${Math.round(RULES.discountRate * 100)}% 할인, 총 ${RULES.freeShippingMinQty}권 이상 주문 시 배송비 무료(미만 시 ${won(RULES.shippingFee)}원)입니다.`,
+    `총 ${RULES.freeShippingMinQty}권 이상 주문 시 배송비 무료(미만 시 ${won(RULES.shippingFee)}원)입니다.`,
     `안전교육 인정시간: ${hours}`,
     "기관 내부 결재 후 제작을 진행하며, 3~5일 이내 납품합니다. 상세 납품 일정은 별도로 안내드립니다.",
   ];

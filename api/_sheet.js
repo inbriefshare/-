@@ -13,7 +13,7 @@ export async function logToSheet(payload) {
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ secret, ...payload }),
       redirect: "follow",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(25000),
     });
     const text = await r.text();
     const ok = r.ok && /"ok":\s*true/.test(text);

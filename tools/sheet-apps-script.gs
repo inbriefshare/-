@@ -23,12 +23,12 @@ const QUOTES = "견적요청";
 const HEAD = {
   [LIST]: ["대화번호", "시작", "마지막", "소속", "담당자", "연락처", "이메일", "메시지 수", "견적요청", "첫 질문", "대화 보기"],
   [LOG]: ["대화번호", "시각", "보낸 사람", "내용"],
-  [QUOTES]: ["접수시각", "접수번호", "소속", "담당자", "연락처", "이메일", "1권", "2권", "3권", "총 권수", "배송비", "합계", "메일 발송", "처리상태", "대화 보기"],
+  [QUOTES]: ["접수시각", "접수번호", "소속", "담당자", "연락처", "이메일", "1권", "2권", "3권", "총 권수", "배송비", "합계", "메일 발송", "처리상태", "대화 보기", "견적서"],
 };
 const WIDTH = {
   [LIST]: [110, 130, 130, 160, 80, 110, 170, 70, 70, 260, 80],
   [LOG]: [110, 130, 80, 560],
-  [QUOTES]: [130, 130, 160, 80, 110, 170, 60, 60, 60, 70, 70, 90, 80, 90, 80],
+  [QUOTES]: [130, 130, 160, 80, 110, 170, 60, 60, 60, 70, 70, 90, 80, 90, 80, 90],
 };
 
 function sheet_(name) {
@@ -41,7 +41,27 @@ function sheet_(name) {
     WIDTH[name].forEach((w, i) => sh.setColumnWidth(i + 1, w));
     if (name === LOG) sh.getRange("D:D").setWrap(true);
   }
+  // 나중에 늘어난 머리글 칸을 채운다 (기존 시트용)
+  const head = HEAD[name];
+  if (sh.getLastColumn() < head.length) {
+    for (let i = sh.getLastColumn(); i < head.length; i++) {
+      sh.getRange(1, i + 1).setValue(head[i]).setFontWeight("bold").setBackground("#EDF2FA");
+      sh.setColumnWidth(i + 1, WIDTH[name][i]);
+    }
+  }
   return sh;
+}
+
+// 견적서 PDF를 드라이브의 '상상력놀이터 견적서' 폴더에 저장한다. 공유 설정은 바꾸지 않으므로 이 계정(과 공유받은 사람)만 열 수 있다.
+const PDF_FOLDER = "상상력놀이터 견적서";
+function savePdf_(name, base64) {
+  const it = DriveApp.getFoldersByName(PDF_FOLDER);
+  const folder = it.hasNext() ? it.next() : DriveApp.createFolder(PDF_FOLDER);
+  const fileName = String(name).slice(0, 150);
+  const blob = Utilities.newBlob(Utilities.base64Decode(base64), "application/pdf", "quote.pdf");
+  const file = folder.createFile(blob);
+  file.setName(fileName); // blob 이름에 한글을 넣으면 깨지므로 만든 뒤 이름을 바꾼다
+  return file.getUrl();
 }
 
 function now_() {
@@ -126,7 +146,16 @@ function doPost(e) {
         d.mailed ? "발송됨" : "미발송", "대기", "",
       ]);
       const qs = sheet_(QUOTES);
-      if (sid !== "unknown") qs.getRange(qs.getLastRow(), 15).setFormula(viewLink_(sid));
+      const qrow = qs.getLastRow();
+      if (sid !== "unknown") qs.getRange(qrow, 15).setFormula(viewLink_(sid));
+      if (d.pdfBase64) {
+        try {
+          const url = savePdf_(d.pdfName || d.quoteNo + ".pdf", d.pdfBase64);
+          qs.getRange(qrow, 16).setFormula(`=HYPERLINK("${url}","PDF 열기")`);
+        } catch (err) {
+          qs.getRange(qrow, 16).setValue("저장 실패: " + String(err).slice(0, 80));
+        }
+      }
       addMessages_(sid, [["시스템", `견적 요청 접수 ${d.quoteNo} · 총 ${q.totalQty}권 · 합계 ${q.total}원 · ${d.mailed ? "견적서 메일 발송됨" : "담당자 확인 후 발송 예정"}`]]);
       upsertList_(sid, { org: c.org, name: c.name, phone: c.phone, email: c.email, quote: true, addMessages: 1 });
     }
@@ -147,6 +176,8 @@ function out_(o) {
 }
 
 // 처음 한 번 실행해 시트를 만들어 둘 때 쓴다 (선택)
+// 드라이브 권한 승인도 이 함수를 한 번 실행하면 된다
 function setup() {
   [LIST, LOG, QUOTES].forEach(sheet_);
+  DriveApp.getRootFolder();
 }
