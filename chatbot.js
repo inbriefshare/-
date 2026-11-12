@@ -15,6 +15,7 @@
     "[필수] 개인정보 수집·이용 동의: 견적과 상담을 위해 소속 기관, 담당자 이름, 연락처, 이메일과 대화 내용을 수집·저장하며, 목적 달성 후 지체 없이 파기합니다.";
   var FIRST_QUESTION = "감사합니다. 먼저 소속 기관을 알려 주세요. (예: 서울종합복지관)";
   var PHONE = "010-8260-3318";
+  var KAKAO = "https://qr.kakao.com/talk/_zshh42ZMpCt5Zl.HQZ3Cy5N.gg-"; // 카카오톡 mango4024 친구 추가
   var PRODUCTS = [
     { id: "v1", label: "1권 생활교통안전 편", note: "3시간 · 5,000원" },
     { id: "v2", label: "2권 자연재난 보건안전 편", note: "2시간 · 3,000원" },
@@ -25,6 +26,7 @@
     "납품까지 얼마나 걸려요?",
     "혹한기 대체교육으로 쓸 수 있나요?",
     "가격이 궁금해요",
+    "PDF 파일 인쇄만 맡길 수 있나요?",
   ];
 
   var css =
@@ -90,15 +92,16 @@
     return e;
   }
 
-  // 텍스트를 안전하게 넣고 URL·전화번호·메일만 링크로 바꾼다.
+  // 텍스트를 안전하게 넣고 URL·전화번호·메일·카카오톡 아이디만 링크로 바꾼다.
   function renderText(node, text) {
-    var re = /(https?:\/\/[^\s)]+)|(010-\d{4}-\d{4})|([\w.+-]+@[\w-]+\.[\w.]+)/g;
+    var re = /(https?:\/\/[^\s)]+)|(010-\d{4}-\d{4})|([\w.+-]+@[\w-]+\.[\w.]+)|(카카오톡\s?\(?mango4024\)?)/g;
     var last = 0, m;
     while ((m = re.exec(text))) {
       if (m.index > last) node.appendChild(document.createTextNode(text.slice(last, m.index)));
       var a = el("a", null, m[0]);
       if (m[1]) { a.href = m[1]; a.target = "_blank"; a.rel = "noopener"; }
       else if (m[2]) a.href = "tel:" + m[2].replace(/-/g, "");
+      else if (m[4]) { a.href = KAKAO; a.target = "_blank"; a.rel = "noopener"; }
       else a.href = "mailto:" + m[3];
       node.appendChild(a);
       last = re.lastIndex;
@@ -260,14 +263,14 @@
             card.remove();
             addMsg("bot", d.mailed
               ? "견적서를 " + d.email + "(으)로 보내 드렸습니다. (접수번호 " + d.quoteNo + ", 합계 " + won(d.quote.total) + "원)\n메일이 보이지 않으면 스팸함을 확인해 주세요."
-              : "견적 요청이 접수되었습니다. (접수번호 " + d.quoteNo + ", 합계 " + won(d.quote.total) + "원)\n담당자가 확인한 뒤 " + d.email + "(으)로 견적서를 보내드리겠습니다. 급하시면 " + PHONE + "로 연락 주세요.");
+              : "견적 요청이 접수되었습니다. (접수번호 " + d.quoteNo + ", 합계 " + won(d.quote.total) + "원)\n담당자가 확인한 뒤 " + d.email + "(으)로 견적서를 보내드리겠습니다. 급하시면 카카오톡(mango4024)이나 " + PHONE + "로 연락 주세요.");
           } else {
             status.textContent = (d && d.message) || "발송하지 못했습니다. 잠시 후 다시 시도해 주세요.";
             resetButton();
           }
         })
         .catch(function () {
-          status.textContent = "연결이 원활하지 않습니다. 010-8260-3318로 문의해 주세요.";
+          status.textContent = "연결이 원활하지 않습니다. 카카오톡(mango4024)이나 010-8260-3318로 문의해 주세요.";
           resetButton();
         });
     };
@@ -312,8 +315,9 @@
 
     var foot = el("div", { id: "scb-foot" });
     foot.appendChild(document.createTextNode("AI가 답변하며 틀릴 수 있습니다. 정확한 내용은 "));
-    var fl = el("a", { href: "tel:" + PHONE.replace(/-/g, "") }, PHONE);
-    foot.appendChild(fl);
+    foot.appendChild(el("a", { href: KAKAO, target: "_blank", rel: "noopener" }, "카카오톡"));
+    foot.appendChild(document.createTextNode(" 또는 "));
+    foot.appendChild(el("a", { href: "tel:" + PHONE.replace(/-/g, "") }, PHONE));
     foot.appendChild(document.createTextNode("로 문의해 주세요."));
 
     panel.appendChild(head);

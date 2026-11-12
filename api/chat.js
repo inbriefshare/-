@@ -34,7 +34,7 @@ const TOOLS = [
   },
 ];
 const FORM_REPLY = "말씀해 주신 내용을 아래 카드에 정리했습니다. 확인하시고 '견적 요청하기'를 눌러 주세요.";
-const FALLBACK_REPLY = `죄송합니다. 지금은 답변을 드리기 어렵습니다. 전화(${PHONE})로 문의해 주세요.`;
+const FALLBACK_REPLY = `죄송합니다. 지금은 답변을 드리기 어렵습니다. 카카오톡(mango4024)이나 전화(${PHONE})로 문의해 주세요.`;
 
 // 같은 인스턴스 안에서의 간단한 사용 제한 (IP당 10분에 40회)
 const hits = new Map();
@@ -92,7 +92,9 @@ export default async function handler(req, res) {
 
 # 참고: 이 방문자는 페이지에서 ${product} 견적 버튼을 누르고 들어왔습니다. 권수를 물을 때 이 권을 먼저 제안하되, 다른 권도 함께 주문할 수 있다고 안내합니다.`
     : SYSTEM_PROMPT;
-  const record = (bot, form) => waitUntil(logToSheet({ type: "chat", sessionId, user: userText, bot, form }));
+  // 미리보기 배포에서 qa- 로 시작하는 시험 대화는 시트에 남기지 않는다 (예상 질문 점검용)
+  const skipLog = process.env.VERCEL_ENV !== "production" && sessionId.startsWith("qa-");
+  const record = (bot, form) => !skipLog && waitUntil(logToSheet({ type: "chat", sessionId, user: userText, bot, form }));
 
   try {
     const response = await client.messages.create({

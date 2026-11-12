@@ -239,7 +239,7 @@ export async function buildQuotePdf({ quoteNo, date, customer, quote, stampPng }
 
   // 하단 문의
   text(
-    `문의  ${SUPPLIER.mobile}  ·  ${SUPPLIER.email}  ·  ${SUPPLIER.brand}`,
+    `문의  카카오톡 mango4024  ·  ${SUPPLIER.mobile}  ·  ${SUPPLIER.email}  ·  ${SUPPLIER.brand}`,
     (L + RIGHT) / 2,
     48,
     { size: 9, color: GRAY, align: "center" },

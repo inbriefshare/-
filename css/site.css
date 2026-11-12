@@ -46,6 +46,8 @@ a { color: inherit; }
 .btn--lg { min-height: 60px; padding: 0 var(--space-lg); font-size: var(--text-lg); }
 .btn--line { background: transparent; color: var(--color-accent); }
 .btn--line:hover { background: var(--color-accent-wash); border-color: var(--color-accent); }
+.btn--kakao { background: #FEE500; border-color: #FEE500; color: #191919; text-decoration: none; }
+.btn--kakao:hover { background: #F5DC00; border-color: #F5DC00; color: #191919; }
 .link { color: var(--color-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 2px; }
 .link:hover { color: var(--color-accent-2); }
 button.link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; cursor: pointer; }
@@ -179,7 +181,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; font-weigh
 
   body { padding-bottom: calc(var(--bar-h) + env(safe-area-inset-bottom, 0px)); }
   .mbar {
-    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: var(--space-2xs);
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-2xs);
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
     padding: var(--space-2xs) var(--space-sm) calc(var(--space-2xs) + env(safe-area-inset-bottom, 0px));
     background: var(--color-paper); border-top: var(--rule);
