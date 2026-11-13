@@ -35,7 +35,7 @@
     "#scb-btn{display:flex;align-items:center;gap:8px;height:56px;padding:0 22px;border:0;border-radius:12px;background:" + BLUE + ";color:#fff;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}" +
     "#scb-btn:focus-visible,#scb-root button:focus-visible,#scb-input:focus-visible{outline:3px solid #F5B400;outline-offset:2px}" +
     "#scb-btn svg{width:24px;height:24px}" +
-    "#scb-panel{display:none;flex-direction:column;width:380px;height:min(620px,calc(100vh - 40px));background:#fff;border-radius:18px;box-shadow:0 12px 40px rgba(20,24,31,.25);overflow:hidden}" +
+    "#scb-panel{display:none;flex-direction:column;width:min(440px,calc(100vw - 40px));height:min(720px,calc(100vh - 40px));background:#fff;border-radius:18px;box-shadow:0 12px 40px rgba(20,24,31,.25);overflow:hidden}" +
     "#scb-root.open #scb-panel{display:flex}#scb-root.open #scb-btn{display:none}" +
     "#scb-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:" + BLUE + ";color:#fff}" +
     "#scb-head strong{font-size:17px}#scb-head span{display:block;font-size:13px;opacity:.85;margin-top:2px}" +
@@ -45,7 +45,12 @@
     ".scb-bot{align-self:flex-start;background:#fff;border:1px solid #E2E5EA;border-top-left-radius:4px}" +
     ".scb-user{align-self:flex-end;background:" + BLUE + ";color:#fff;border-top-right-radius:4px}" +
     ".scb-msg a{color:" + BLUE + ";font-weight:600}.scb-user a{color:#fff}" +
-    ".scb-typing{color:#5B6472}" +
+    ".scb-skel{width:72%;display:flex;flex-direction:column;gap:9px;padding:14px 16px}" +
+    ".scb-skel i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#E3E7EE 25%,#F4F6FA 50%,#E3E7EE 75%);background-size:200% 100%;animation:scb-shim 1.3s linear infinite}" +
+    ".scb-skel i:nth-child(1){width:92%}.scb-skel i:nth-child(2){width:100%}.scb-skel i:nth-child(3){width:58%}" +
+    ".scb-skel span{font-size:13px;color:#6B7280;margin-top:2px}" +
+    "@keyframes scb-shim{from{background-position:200% 0}to{background-position:-200% 0}}" +
+    "@media (prefers-reduced-motion:reduce){.scb-skel i{animation:none}}" +
     "#scb-sugg{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px 10px;background:#F4F5F7}" +
     "#scb-sugg button{border:1px solid #C7CCD4;background:#fff;border-radius:16px;padding:7px 12px;font-size:14px;color:#1F2937;cursor:pointer;font-family:inherit}" +
     "#scb-form{display:flex;gap:8px;padding:12px;border-top:1px solid #E2E5EA;background:#fff}" +
@@ -126,8 +131,16 @@
     addMsg("user", text);
     history.push({ role: "user", content: text });
     input.value = "";
-    var typing = addMsg("bot", "답변을 준비하고 있어요…");
-    typing.classList.add("scb-typing");
+    // 답변을 기다리는 동안: 답이 들어올 자리에 회색 줄(스켈레톤)이 반짝이며 채워진다
+    var typing = el("div", { class: "scb-msg scb-bot scb-skel", role: "status" });
+    typing.appendChild(el("i"));
+    typing.appendChild(el("i"));
+    typing.appendChild(el("i"));
+    var tlabel = el("span", null, "답변을 준비하고 있어요");
+    typing.appendChild(tlabel);
+    log.appendChild(typing);
+    log.scrollTop = log.scrollHeight;
+    var slow = setTimeout(function () { tlabel.textContent = "조금만 기다려 주세요. 내용을 정리하고 있어요"; }, 6000);
 
     fetch("/api/chat", {
       method: "POST",
@@ -137,6 +150,7 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var reply = (data && data.reply) || "죄송합니다. 잠시 후 다시 시도해 주세요.";
+        clearTimeout(slow);
         typing.remove();
         addMsg("bot", reply);
         if (data && !data.error) history.push({ role: "assistant", content: reply });
@@ -144,9 +158,10 @@
         if (data && data.form) addQuoteCard(data.form);
       })
       .catch(function () {
+        clearTimeout(slow);
         typing.remove();
         history.pop();
-        addMsg("bot", "연결이 원활하지 않습니다. 전화 010-8260-3318로 문의해 주세요.");
+        addMsg("bot", "연결이 원활하지 않습니다. 카카오톡(mango4024)이나 전화 010-8260-3318로 문의해 주세요.");
       })
       .then(function () {
         busy = false;
