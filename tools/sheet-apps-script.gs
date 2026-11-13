@@ -369,3 +369,27 @@ function migrate() {
   }
   return "ok";
 }
+
+// 운영 시작 전 시험 기록을 모두 지울 때만 직접 실행: 세 탭의 기록 줄을 지우고(머리글·서식은 유지),
+// 드라이브 '상상력놀이터 견적서' 폴더의 PDF를 휴지통으로 옮긴다(30일 안에 복구 가능).
+function resetAllRecords() {
+  [LIST, LOG, QUOTES].forEach((name) => {
+    const sh = sheet_(name);
+    const last = sh.getLastRow();
+    if (last > 1) {
+      sh.getRange(2, 1, sh.getMaxRows() - 1, sh.getMaxColumns()).breakApart();
+      sh.deleteRows(2, last - 1);
+    }
+  });
+  formatQuoteSheet_(sheet_(QUOTES));
+  let trashed = 0;
+  const it = DriveApp.getFoldersByName(PDF_FOLDER);
+  if (it.hasNext()) {
+    const files = it.next().getFiles();
+    while (files.hasNext()) {
+      files.next().setTrashed(true);
+      trashed++;
+    }
+  }
+  return "rows cleared, pdf trashed: " + trashed;
+}
