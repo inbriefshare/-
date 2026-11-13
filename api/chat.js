@@ -115,7 +115,12 @@ export default async function handler(req, res) {
     const text = response.content
       .filter((b) => b.type === "text")
       .map((b) => b.text)
-      .join("")
+      .join("\n\n")
+      // 모델이 가끔 영어로 된 속생각(답을 어떻게 쓸지 메모)을 답 앞에 섞는다. 답은 항상 한국어이므로
+      // 한글이 한 글자도 없고 영어가 많은 문단은 버린다.
+      .split(/\n{2,}/)
+      .filter((para) => /[가-힣]/.test(para) || (para.match(/[A-Za-z]/g) || []).length < 15)
+      .join("\n\n")
       .replace(/\*\*(.+?)\*\*/g, "$1") // 챗봇 창은 마크다운을 그리지 않으므로 굵게·제목 기호를 지운다
       .replace(/^#{1,6}\s+/gm, "")
       .trim();
