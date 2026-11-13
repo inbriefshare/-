@@ -406,4 +406,45 @@
   }
   if (document.body) start();
   else document.addEventListener("DOMContentLoaded", start);
+
+  // 카카오톡 프로필 QR 링크는 휴대폰에서만 카카오톡 앱으로 바로 열린다.
+  // PC에서 누르면 카카오 홈페이지로 가 버리므로, 대신 QR 창을 띄워 휴대폰으로 스캔하게 한다.
+  var isPhone = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  var kakaoBox = null;
+  function closeKakao() {
+    if (!kakaoBox) return;
+    kakaoBox.remove();
+    kakaoBox = null;
+  }
+  function openKakao() {
+    if (kakaoBox) return;
+    kakaoBox = el("div", { id: "scb-kakao", role: "dialog", "aria-modal": "true", "aria-label": "카카오톡 문의" });
+    kakaoBox.style.cssText = "position:fixed;inset:0;z-index:2147483600;background:rgba(20,24,31,.55);display:flex;align-items:center;justify-content:center;padding:20px;font-family:inherit";
+    var card = el("div");
+    card.style.cssText = "background:#fff;border-radius:16px;padding:28px 28px 22px;max-width:340px;width:100%;text-align:center;color:#14181F;font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;box-shadow:0 12px 40px rgba(0,0,0,.25)";
+    var h = el("p", null, "카카오톡으로 문의하기");
+    h.style.cssText = "margin:0 0 6px;font-size:20px;font-weight:700";
+    var sub = el("p", null, "휴대폰 카메라나 카카오톡으로 QR을 스캔하면 바로 친구 추가할 수 있어요.");
+    sub.style.cssText = "margin:0 0 16px;font-size:15px;line-height:1.5;color:#4B5563;word-break:keep-all";
+    var img = el("img", { src: "/images/kakao-qr.png", alt: "카카오톡 mango4024 친구 추가 QR 코드", width: "220", height: "220" });
+    img.style.cssText = "display:block;margin:0 auto 12px;width:220px;height:220px";
+    var id = el("p", null, "카카오톡 ID: mango4024");
+    id.style.cssText = "margin:0 0 18px;font-size:16px;font-weight:700";
+    var close = el("button", { type: "button" }, "닫기");
+    close.style.cssText = "border:0;background:#FEE500;color:#191919;font-weight:700;font-size:16px;border-radius:10px;padding:12px 0;width:100%;cursor:pointer;font-family:inherit";
+    close.onclick = closeKakao;
+    card.appendChild(h); card.appendChild(sub); card.appendChild(img); card.appendChild(id); card.appendChild(close);
+    kakaoBox.appendChild(card);
+    kakaoBox.addEventListener("click", function (e) { if (e.target === kakaoBox) closeKakao(); });
+    document.body.appendChild(kakaoBox);
+    close.focus();
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href*="qr.kakao.com/talk"]');
+    if (!a || isPhone) return;
+    e.preventDefault();
+    openKakao();
+  }, true);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeKakao(); });
 })();
