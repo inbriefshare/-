@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { computeQuote, SUPPLIER } from "./_business.js";
+import { computeQuote, SUPPLIER, RULES } from "./_business.js";
 import { buildQuotePdf, won, seoulDate } from "./_quotePdf.js";
 import { logToSheet, SESSION_RE } from "./_sheet.js";
 
@@ -50,12 +50,14 @@ function quoteNumber(date) {
   return `Q-${d}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 }
 
+// 방문자에게 보여 주는 금액: 도서 금액만. 택배비는 별도(담당자가 최종 견적서에 넣는다).
+// suggestedShipping·boxes는 시트에서 담당자가 참고하도록만 보낸다.
 function summary(q) {
   return {
     lines: q.lines.map(({ id, name, qty, unitPrice, amount }) => ({ id, name, qty, unitPrice, amount })),
     totalQty: q.totalQty,
-    shipping: q.shipping,
-    total: q.total,
+    itemsTotal: q.itemsTotal,
+    total: q.itemsTotal,
   };
 }
 
@@ -89,6 +91,9 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/pdf");
     return res.status(200).send(pdf);
   }
+
+  // 시트에서 배송비를 적은 뒤 최종 견적서 PDF를 만든다 (시트 비밀값이 있어야 한다)
+  if (body.action === "final") return finalPdf(body, quote, res);
 
   if (body.action !== "submit" && body.action !== "send") {
     return res.status(400).json({ ok: false, message: "invalid action" });
@@ -125,27 +130,8 @@ export default async function handler(req, res) {
   const quoteNo = quoteNumber(date);
   const sessionId = SESSION_RE.test(body.sessionId || "") ? body.sessionId : "unknown";
 
-  // 견적서 PDF는 항상 만들어 시트 기록과 함께 구글 드라이브에 저장한다 (담당자가 시트에서 바로 열어 볼 수 있게)
-  const stampPng = process.env.STAMP_PNG_BASE64 ? Buffer.from(process.env.STAMP_PNG_BASE64, "base64") : undefined;
-  let pdf;
-  try {
-    pdf = await buildQuotePdf({ quoteNo, date, customer, quote, stampPng });
-  } catch (error) {
-    console.error("quote pdf failed", error?.message);
-  }
-  const pdfName = `견적서_${customer.org}_${quoteNo}.pdf`.replace(/[\/:*?"<>|]/g, "_");
-
-  // 자동 메일 발송은 QUOTE_AUTO_SEND=1 이고 네이버 SMTP 설정이 있을 때만 한다. 아니면 시트에 접수만 하고 담당자가 보낸다.
-  let mailed = false;
-  if (pdf && process.env.QUOTE_AUTO_SEND === "1" && process.env.NAVER_SMTP_USER && process.env.NAVER_SMTP_PASS) {
-    try {
-      await sendQuoteMail({ quoteNo, date, customer, quote, pdf, pdfName });
-      mailed = true;
-      console.log("quote mailed", quoteNo);
-    } catch (error) {
-      console.error("quote send failed", error?.code || "", error?.message);
-    }
-  }
+  // 견적서 PDF는 여기서 만들지 않는다. 담당자가 시트에 배송비를 적으면 시트가 action:"final"로 최종 견적서를 만든다.
+  const mailed = false;
 
   const recorded = await logToSheet({
     type: "quote",
@@ -153,10 +139,8 @@ export default async function handler(req, res) {
     quoteNo,
     customer,
     qty: readQty(body.qty),
-    quote: summary(quote),
+    quote: { ...summary(quote), boxes: quote.boxes, suggestedShipping: quote.shipping },
     mailed,
-    pdfName: pdf ? pdfName : undefined,
-    pdfBase64: pdf ? pdf.toString("base64") : undefined,
   });
   console.log("quote request", quoteNo, customer.org, quote.totalQty, quote.total, { recorded, mailed });
 
@@ -169,12 +153,36 @@ export default async function handler(req, res) {
   return res.status(200).json({ ok: true, quoteNo, email: customer.email, mailed, quote: summary(quote) });
 }
 
+async function finalPdf(body, quote, res) {
+  const secret = process.env.SHEET_WEBHOOK_SECRET;
+  if (!secret || body.secret !== secret) return res.status(403).json({ ok: false, message: "forbidden" });
+  const shipping = Number(body.shipping);
+  if (!Number.isInteger(shipping) || shipping < 0 || shipping > 10000000) {
+    return res.status(400).json({ ok: false, message: "배송비는 0 이상의 정수로 적어 주세요." });
+  }
+  if (quote.totalQty === 0) return res.status(400).json({ ok: false, message: "권수가 없습니다." });
+  const quoteNo = clean(body.quoteNo, 30) || "Q-UNKNOWN";
+  const date = body.date && !Number.isNaN(Date.parse(body.date)) ? new Date(body.date) : new Date();
+  const customer = {
+    org: clean(body.customer?.org, 60),
+    name: clean(body.customer?.name, 30),
+    phone: clean(body.customer?.phone, 20),
+    email: clean(body.customer?.email, 100),
+  };
+  const final = { ...quote, shipping, total: quote.itemsTotal + shipping };
+  const stampPng = process.env.STAMP_PNG_BASE64 ? Buffer.from(process.env.STAMP_PNG_BASE64, "base64") : undefined;
+  const pdf = await buildQuotePdf({ quoteNo, date, customer, quote: final, stampPng });
+  const pdfName = `견적서_${customer.org}_${quoteNo}.pdf`.replace(/[\/:*?"<>|]/g, "_");
+  return res.status(200).json({ ok: true, total: final.total, pdfName, pdfBase64: pdf.toString("base64") });
+}
+
+// 메일 자동 발송(결재 후 사용 예정): 최종 견적서 PDF를 받아 보낸다
 async function sendQuoteMail({ quoteNo, date, customer, quote, pdf, pdfName }) {
   const user = process.env.NAVER_SMTP_USER;
   const pass = process.env.NAVER_SMTP_PASS;
   const fromAddress = user.includes("@") ? user : `${user}@naver.com`;
   const lines = quote.lines.map((l) => `- ${l.name}: ${won(l.qty)}권 × ${won(l.unitPrice)}원 = ${won(l.amount)}원`);
-  if (quote.shipping) lines.push(`- 배송비: ${won(quote.shipping)}원`);
+  lines.push(`- 택배비: ${won(quote.shipping)}원`);
   const text = [
     `${customer.org} ${customer.name} 담당자님, 안녕하세요.`,
     `${SUPPLIER.brand}입니다. 요청하신 안전워크북 견적서를 첨부해 드립니다.`,

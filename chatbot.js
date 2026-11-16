@@ -245,11 +245,11 @@
           var q = d.quote;
           while (sum.firstChild) sum.removeChild(sum.firstChild);
           if (!q.totalQty) { sum.textContent = "수량을 입력하면 금액이 계산됩니다."; return; }
-          sum.appendChild(document.createTextNode("총 " + won(q.totalQty) + "권 · 배송비 " + (q.shipping ? won(q.shipping) + "원" : "무료")));
-          sum.appendChild(el("br"));
-          sum.appendChild(document.createTextNode("합계 "));
-          sum.appendChild(el("b", null, won(q.total) + "원"));
+          sum.appendChild(document.createTextNode("총 " + won(q.totalQty) + "권 · 도서 금액 "));
+          sum.appendChild(el("b", null, won(q.itemsTotal) + "원"));
           sum.appendChild(document.createTextNode(" (부가세 면세)"));
+          sum.appendChild(el("br"));
+          sum.appendChild(document.createTextNode("택배비는 별도이며, 최종 견적서에 포함해 보내드려요."));
         }).catch(function () {});
       }, 250);
     }
@@ -278,7 +278,7 @@
             card.remove();
             addMsg("bot", d.mailed
               ? "견적서를 " + d.email + "(으)로 보내 드렸습니다. (접수번호 " + d.quoteNo + ", 합계 " + won(d.quote.total) + "원)\n메일이 보이지 않으면 스팸함을 확인해 주세요."
-              : "견적 요청이 접수되었습니다. (접수번호 " + d.quoteNo + ", 합계 " + won(d.quote.total) + "원)\n담당자가 확인한 뒤 " + d.email + "(으)로 견적서를 보내드리겠습니다. 급하시면 카카오톡(mango4024)이나 " + PHONE + "로 연락 주세요.");
+              : "견적 요청이 접수되었습니다. (접수번호 " + d.quoteNo + ", 도서 금액 " + won(d.quote.itemsTotal) + "원)\n담당자가 택배비를 포함한 최종 견적서를 " + d.email + "(으)로 보내드리겠습니다. 급하시면 카카오톡(mango4024)이나 " + PHONE + "로 연락 주세요.");
           } else {
             status.textContent = (d && d.message) || "발송하지 못했습니다. 잠시 후 다시 시도해 주세요.";
             resetButton();
