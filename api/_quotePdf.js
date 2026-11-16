@@ -179,12 +179,10 @@ export async function buildQuotePdf({ quoteNo, date, customer, quote, stampPng }
   ]);
   bodyRows.push([
     String(bodyRows.length + 1),
-    quote.shipping
-      ? `배송비 (총 ${RULES.freeShippingMinQty}권 미만)`
-      : `배송비 (총 ${RULES.freeShippingMinQty}권 이상 무료)`,
+    quote.shipping ? "택배비" : "택배비 (무료)",
     "",
-    "1",
-    won(quote.shipping),
+    "",
+    "",
     won(quote.shipping),
   ]);
   while (bodyRows.length < 6) bodyRows.push(["", "", "", "", "", ""]);
@@ -216,23 +214,8 @@ export async function buildQuotePdf({ quoteNo, date, customer, quote, stampPng }
   box(L + sumW + cols[3].w, y, cols[4].w + cols[5].w, ih);
   text(won(quote.total), RIGHT - 6, y + 8, { size: 10.5, font: B, align: "right" });
 
-  // 비고
-  y -= 30;
-  text("비고", L, y, { size: 10.5, font: B });
-  const hours = PRODUCTS.map((p) => (p.name.match(/\d+권/) || [p.name])[0] +` ${p.hours}시간`).join(" · ");
-  const notes = [
-    "도서(부가세 면세) 상품으로 부가세가 없습니다.",
-    `총 ${RULES.freeShippingMinQty}권 이상 주문 시 배송비 무료(미만 시 ${won(RULES.shippingFee)}원)입니다.`,
-    `안전교육 인정시간: ${hours}`,
-    "기관 내부 결재 후 제작을 진행하며, 3~5일 이내 납품합니다. 상세 납품 일정은 별도로 안내드립니다.",
-  ];
-  for (const n of notes) {
-    y -= 15;
-    text(`·  ${n}`, L + 4, y, { size: 9, maxWidth: RIGHT - L - 4 });
-  }
-
   // 입금 계좌
-  y -= 34;
+  y -= 46;
   box(L, y, RIGHT - L, 26, { fill: SHADE });
   text("입금 계좌", L + 12, y + 9, { size: 10, font: B });
   text(`${SUPPLIER.bank}   ${SUPPLIER.account}   예금주 ${SUPPLIER.holder}`, L + 80, y + 9, { size: 10.5, font: B });

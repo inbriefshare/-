@@ -27,8 +27,9 @@ export const PRODUCTS = [
 ];
 
 export const RULES = {
-  freeShippingMinQty: 100, // 총 권수가 이 이상이면 배송비 무료
-  shippingFee: 7000, // 그 미만일 때 배송비
+  freeShippingMinQty: 201, // 총 권수가 이 이상이면 택배비 무료 (200권 이하는 박스당 택배비)
+  shippingFee: 7000, // 박스당 택배비
+  perBox: { v1: 45, v2: 60, v3: 60 }, // 한 박스에 들어가는 권수
   validDays: 30, // 견적 유효기간(일)
   maxQtyPerItem: 100000,
 };
@@ -53,11 +54,15 @@ export function computeQuote(qty) {
     l.amount = l.unitPrice * l.qty;
   }
   const itemsTotal = lines.reduce((s, l) => s + l.amount, 0);
-  const shipping = totalQty > 0 && totalQty < RULES.freeShippingMinQty ? RULES.shippingFee : 0;
+  // 박스 수: 1권은 45권, 2·3권은 60권이 한 박스. 섞이면 차지하는 비율을 더해 올림한다.
+  const filled = lines.reduce((s, l) => s + l.qty / RULES.perBox[l.id], 0);
+  const boxes = totalQty > 0 ? Math.ceil(filled - 1e-9) : 0;
+  const shipping = totalQty > 0 && totalQty < RULES.freeShippingMinQty ? boxes * RULES.shippingFee : 0;
   return {
     lines,
     totalQty,
     itemsTotal,
+    boxes,
     shipping,
     total: itemsTotal + shipping,
   };

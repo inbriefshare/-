@@ -18,6 +18,8 @@ const SECRET = "여기에_비밀값";
 // 시트 주소의 /d/와 /edit 사이 값
 const SHEET_ID = "";
 const TITLE = "노인일자리 워크북 챗봇문의 기록";
+// 최종 견적서 PDF를 만드는 사이트 주소
+const SITE = "https://xn--9d0bv2f91if5d3rotoart6a0om68f.kr";
 
 const LIST = "대화목록";
 const LOG = "대화내용";
@@ -26,12 +28,12 @@ const QUOTES = "견적요청";
 const HEAD = {
   [LIST]: ["대화번호", "시작", "마지막", "소속", "담당자", "연락처", "이메일", "메시지 수", "견적요청", "첫 질문", "대화 보기"],
   [LOG]: ["대화번호", "시각", "기관(방문자)", "챗봇"],
-  [QUOTES]: ["접수시각", "접수번호", "소속 (누르면 대화)", "담당자", "연락처", "이메일", "1권", "2권", "3권", "총 권수", "배송비", "합계", "메일 발송", "처리상태", "대화 보기", "견적서"],
+  [QUOTES]: ["접수시각", "접수번호", "소속 (누르면 대화)", "담당자", "연락처", "이메일", "1권", "2권", "3권", "총 권수", "배송비 (직접 입력)", "합계", "메일 발송", "처리상태", "대화 보기", "최종 견적서"],
 };
 const WIDTH = {
   [LIST]: [110, 130, 130, 160, 80, 110, 170, 70, 70, 260, 80],
   [LOG]: [90, 130, 380, 460],
-  [QUOTES]: [130, 130, 170, 80, 110, 170, 60, 60, 60, 70, 70, 90, 90, 90, 80, 90],
+  [QUOTES]: [130, 130, 170, 80, 110, 170, 60, 60, 60, 70, 110, 90, 90, 90, 80, 150],
 };
 
 // 대화내용 색
@@ -39,6 +41,8 @@ const C_HEAD = "#DCE3EC"; // 대화 시작 줄
 const C_USER = "#FFF3D6"; // 기관(방문자) 말
 const C_BOT = "#E7F0FE"; // 챗봇 답변
 const C_SYS = "#E6F4EA"; // 견적 접수 같은 알림
+const C_INPUT = "#FFF8C5"; // 담당자가 직접 적는 칸
+const PENDING = "배송비를 적으면 자동으로 만들어져요";
 const MAIL_COL = 13;
 const STATUS_COL = 14;
 
@@ -199,9 +203,14 @@ function upsertList_(sid, info) {
 
 // 견적서 PDF를 드라이브의 '상상력놀이터 견적서' 폴더에 저장한다. 공유 설정은 바꾸지 않으므로 이 계정(과 공유받은 사람)만 열 수 있다.
 const PDF_FOLDER = "상상력놀이터 견적서";
-function savePdf_(name, base64) {
+function savePdf_(name, base64, replaceKey) {
   const it = DriveApp.getFoldersByName(PDF_FOLDER);
   const folder = it.hasNext() ? it.next() : DriveApp.createFolder(PDF_FOLDER);
+  if (replaceKey) {
+    // 같은 접수번호의 예전 견적서는 휴지통으로 (배송비를 고쳐 다시 만든 경우)
+    const old = folder.searchFiles(`title contains '${replaceKey}' and trashed = false`);
+    while (old.hasNext()) old.next().setTrashed(true);
+  }
   const fileName = String(name).slice(0, 150);
   const blob = Utilities.newBlob(Utilities.base64Decode(base64), "application/pdf", "quote.pdf");
   const file = folder.createFile(blob);
@@ -228,23 +237,22 @@ function doPost(e) {
       const qs = sheet_(QUOTES);
       qs.appendRow([
         now_(), d.quoteNo, c.org, c.name, "'" + (c.phone || ""), c.email,
-        qty.v1 || 0, qty.v2 || 0, qty.v3 || 0, q.totalQty || 0, q.shipping || 0, q.total || 0,
-        d.mailed ? "발송" : "미발송", "대기", "",
+        qty.v1 || 0, qty.v2 || 0, qty.v3 || 0, q.totalQty || 0, "", "",
+        d.mailed ? "발송" : "미발송", "대기", "", PENDING,
       ]);
       const qrow = qs.getLastRow();
+      // 합계 = 도서 금액 + 담당자가 적은 배송비. 배송비 칸은 노란색으로 표시하고 자동 계산값을 메모로 남긴다.
+      const items = q.itemsTotal != null ? q.itemsTotal : (q.total || 0) - (q.shipping || 0);
+      qs.getRange(qrow, 12).setFormula(`=IF(K${qrow}="","",${items}+K${qrow})`);
+      const ship = qs.getRange(qrow, 11).setBackground(C_INPUT).setNumberFormat("#,##0");
+      if (q.boxes) ship.setNote(`참고(자동 계산): ${q.boxes}박스 기준 ${Number(q.suggestedShipping || 0).toLocaleString("ko-KR")}원
+도서 금액 ${Number(items).toLocaleString("ko-KR")}원`);
+      qs.getRange(qrow, 16).setFontColor("#8A929C");
       if (sid !== "unknown") {
         qs.getRange(qrow, 3).setFormula(viewLink_(sid, c.org || "대화 보기"));
         qs.getRange(qrow, 15).setFormula(viewLink_(sid));
       }
-      if (d.pdfBase64) {
-        try {
-          const url = savePdf_(d.pdfName || d.quoteNo + ".pdf", d.pdfBase64);
-          qs.getRange(qrow, 16).setFormula(`=HYPERLINK("${url}","PDF 열기")`);
-        } catch (err) {
-          qs.getRange(qrow, 16).setValue("저장 실패: " + String(err).slice(0, 80));
-        }
-      }
-      addMessages_(sid, [{ sys: `견적 요청 접수 ${d.quoteNo} · 총 ${q.totalQty}권 · 합계 ${Number(q.total || 0).toLocaleString("ko-KR")}원 · ${d.mailed ? "견적서 메일 발송됨" : "담당자 확인 후 발송 예정"}` }]);
+      addMessages_(sid, [{ sys: `견적 요청 접수 ${d.quoteNo} · 총 ${q.totalQty}권 · 도서 금액 ${Number(q.itemsTotal != null ? q.itemsTotal : q.total || 0).toLocaleString("ko-KR")}원 · 배송비 입력 후 최종 견적서 발송 예정` }]);
       upsertList_(sid, { org: c.org, name: c.name, phone: c.phone, email: c.email, quote: true, addMessages: 1 });
     }
     return out_({ ok: true });
@@ -392,4 +400,69 @@ function resetAllRecords() {
     }
   }
   return "rows cleared, pdf trashed: " + trashed;
+}
+
+
+// ── 최종 견적서 ─────────────────────────────────────────────
+// 견적요청 탭의 '배송비 (직접 입력)' 칸(K열)에 금액을 적으면 그 줄의 최종 견적서 PDF를 만든다.
+// 처음 한 번 installTrigger를 실행해 두어야 한다.
+function onQuoteEdit(e) {
+  const r = e && e.range;
+  if (!r || r.getSheet().getName() !== QUOTES || r.getColumn() > 11 || r.getLastColumn() < 11 || r.getRow() < 2) return;
+  for (let row = r.getRow(); row <= r.getLastRow(); row++) makeFinal_(row);
+}
+
+function makeFinal_(row) {
+  const qs = sheet_(QUOTES);
+  const v = qs.getRange(row, 1, 1, 16).getValues()[0];
+  const shown = qs.getRange(row, 1, 1, 16).getDisplayValues()[0];
+  const cell = qs.getRange(row, 16);
+  if (!v[1]) return;
+  if (v[10] === "" || v[10] === null) {
+    cell.setValue(PENDING).setFontColor("#8A929C");
+    return;
+  }
+  const shipping = Number(v[10]);
+  if (!Number.isInteger(shipping) || shipping < 0) {
+    cell.setValue("배송비는 0 이상의 숫자로 적어 주세요").setFontColor("#B3261E");
+    return;
+  }
+  cell.setValue("만드는 중…").setFontColor("#8A929C");
+  SpreadsheetApp.flush();
+  const date = v[0] instanceof Date ? v[0].toISOString() : String(v[0]).replace(" ", "T") + "+09:00";
+  try {
+    const res = UrlFetchApp.fetch(SITE + "/api/quote", {
+      method: "post",
+      contentType: "application/json",
+      muteHttpExceptions: true,
+      payload: JSON.stringify({
+        action: "final",
+        secret: SECRET,
+        quoteNo: v[1],
+        date: date,
+        customer: { org: shown[2], name: v[3], phone: String(v[4]).replace(/^'/, ""), email: v[5] },
+        qty: { v1: Number(v[6]) || 0, v2: Number(v[7]) || 0, v3: Number(v[8]) || 0 },
+        shipping: shipping,
+      }),
+    });
+    const out = JSON.parse(res.getContentText());
+    if (!out.ok) throw new Error(out.message || "HTTP " + res.getResponseCode());
+    const url = savePdf_(out.pdfName, out.pdfBase64, v[1]);
+    cell.setFormula(`=HYPERLINK("${url}","최종 견적서 PDF")`).setFontColor(null);
+  } catch (err) {
+    cell.setValue("만들기 실패: " + String(err.message || err).slice(0, 80)).setFontColor("#B3261E");
+  }
+}
+
+// 처음 한 번 실행: 배송비 입력을 감지하는 트리거를 만들고, 견적요청 머리글을 새 형식으로 맞춘다
+function installTrigger() {
+  ScriptApp.getProjectTriggers()
+    .filter((t) => t.getHandlerFunction() === "onQuoteEdit")
+    .forEach((t) => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger("onQuoteEdit").forSpreadsheet(ss_()).onEdit().create();
+  const qs = sheet_(QUOTES);
+  qs.getRange(1, 1, 1, HEAD[QUOTES].length).setValues([HEAD[QUOTES]]);
+  WIDTH[QUOTES].forEach((w, i) => qs.setColumnWidth(i + 1, w));
+  qs.getRange(1, 11).setBackground(C_INPUT);
+  return "trigger installed";
 }
