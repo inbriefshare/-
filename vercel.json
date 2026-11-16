@@ -2,7 +2,7 @@
   "regions": ["icn1"],
   "functions": {
     "api/quote.js": {
-      "includeFiles": "node_modules/@expo-google-fonts/noto-sans-kr/{400Regular,700Bold}/*.ttf"
+      "includeFiles": "node_modules/@expo-google-fonts/noto-sans-kr/{300Light,700Bold}/*.ttf"
     }
   }
 }
