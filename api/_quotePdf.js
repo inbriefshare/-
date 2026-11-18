@@ -119,7 +119,7 @@ export async function buildQuotePdf({ quoteNo, date, customer, quote, stampPng }
   cell(ymd, left("B"), right("D"), T[4], rh(4), { size: 8.5, align: "right" });
   cell(`No. ${quoteNo}`, left("E"), right("E"), T[4], rh(4), { size: 6.5, align: "center", color: GRAY });
   cell(customer.org, left("B"), right("D"), T[5], rh(5), { size: 8.5, align: "center" });
-  cell(`${customer.name} 담당자님`, left("B"), right("D"), T[6], rh(6), { size: 9, align: "center" });
+  cell(customer.name ? `${customer.name} 담당자님` : "담당자님 귀하", left("B"), right("D"), T[6], rh(6), { size: 9, align: "center" });
   cell("합계", left("B"), right("C"), T[7], rh(7), { size: 10, font: "B", pad: 2 });
   cell(`₩${won(quote.total)}`, left("D"), right("E"), T[7], rh(7), { size: 10, font: "B", align: "right", pad: 2 });
 

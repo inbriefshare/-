@@ -11,7 +11,6 @@ import { logToSheet, SESSION_RE } from "./_sheet.js";
 // 선택: STAMP_PNG_BASE64(직인 PNG를 base64로), QUOTE_BCC(사본 받을 주소, 기본은 보내는 주소)
 
 const EMAIL_RE = /^[^\s@<>()",;:]+@[^\s@<>()",;:]+\.[^\s@<>()",;:]+$/;
-const PHONE_RE = /^0\d{1,2}-?\d{3,4}-?\d{4}$/;
 
 // 같은 인스턴스 안에서의 간단한 발송 제한 (IP당 10분에 3건, 인스턴스당 하루 100건)
 const recent = new Map();
@@ -110,8 +109,6 @@ export default async function handler(req, res) {
   };
   const missing = [];
   if (!customer.org) missing.push("소속 기관");
-  if (!customer.name) missing.push("담당자 이름");
-  if (!PHONE_RE.test(customer.phone)) missing.push("연락처");
   if (!EMAIL_RE.test(customer.email)) missing.push("이메일");
   if (quote.totalQty === 0) missing.push("권수");
   if (missing.length) {
@@ -184,7 +181,7 @@ async function sendQuoteMail({ quoteNo, date, customer, quote, pdf, pdfName }) {
   const lines = quote.lines.map((l) => `- ${l.name}: ${won(l.qty)}권 × ${won(l.unitPrice)}원 = ${won(l.amount)}원`);
   lines.push(`- 택배비: ${won(quote.shipping)}원`);
   const text = [
-    `${customer.org} ${customer.name} 담당자님, 안녕하세요.`,
+    `${customer.org}${customer.name ? " " + customer.name : ""} 담당자님, 안녕하세요.`,
     `${SUPPLIER.brand}입니다. 요청하신 안전워크북 견적서를 첨부해 드립니다.`,
     "",
     `견적번호: ${quoteNo} (${seoulDate(date)})`,

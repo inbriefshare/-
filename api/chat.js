@@ -18,13 +18,11 @@ const TOOLS = [
   {
     name: "submit_quote_request",
     description:
-      "소속 기관, 담당자 이름, 연락처, 이메일, 권별 수량을 대화로 모두 받았을 때 호출한다. 화면에 확인 카드가 뜨고 방문자가 '견적 요청하기'를 누르면 접수된다. 대화에서 들은 값만 넣고 지어내지 않는다.",
+      "소속 기관, 이메일, 권별 수량을 대화로 모두 받았을 때 호출한다. 담당자 이름·연락처는 묻지 않는다. 화면에 확인 카드가 뜨고 방문자가 '견적 요청하기'를 누르면 접수된다. 대화에서 들은 값만 넣고 지어내지 않는다.",
     input_schema: {
       type: "object",
       properties: {
         org: { type: "string", description: "소속 기관명" },
-        name: { type: "string", description: "담당자 이름" },
-        phone: { type: "string", description: "연락처" },
         email: { type: "string", description: "견적서를 받을 이메일" },
         v1: { type: "integer", description: "1권 권수 (없으면 0)" },
         v2: { type: "integer", description: "2권 권수 (없으면 0)" },

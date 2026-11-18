@@ -12,7 +12,7 @@
   var GREETING =
     "안녕하세요, 도서출판 상상력놀이터입니다. 노인일자리 안전교육 워크북 구매와 견적을 도와드려요. 상담을 시작하기 전에 아래 안내를 확인해 주세요.";
   var CONSENT_TEXT =
-    "[필수] 개인정보 수집·이용 동의: 견적과 상담을 위해 소속 기관, 담당자 이름, 연락처, 이메일과 대화 내용을 수집·저장하며, 목적 달성 후 지체 없이 파기합니다.";
+    "[필수] 개인정보 수집·이용 동의: 견적과 상담을 위해 소속 기관, 이메일과 대화 내용을 수집·저장하며, 목적 달성 후 지체 없이 파기합니다.";
   var FIRST_QUESTION = "감사합니다. 먼저 소속 기관을 알려 주세요. (예: 서울종합복지관)";
   var PHONE = "010-8260-3318";
   var KAKAO = "https://qr.kakao.com/talk/_zshh42ZMpCt5Zl.HQZ3Cy5N.gg-"; // 카카오톡 mango4024 친구 추가
@@ -195,8 +195,6 @@
       return i;
     }
     var org = field("소속 기관", "org", "text", "예: 서울종합복지관");
-    var name = field("담당자 이름", "name", "text", "예: 홍길동");
-    var phone = field("연락처", "phone", "tel", "예: 010-1234-5678");
     var email = field("견적서 받을 이메일", "email", "email", "예: name@korea.kr");
 
     var ql = el("div", null);
@@ -268,7 +266,7 @@
       postQuote({
         action: "submit",
         sessionId: sessionId,
-        customer: { org: org.value, name: name.value, phone: phone.value, email: email.value },
+        customer: { org: org.value, email: email.value },
         qty: qtyValues(),
         consent: true,
         website: hp.value,
@@ -292,7 +290,7 @@
 
     log.appendChild(card);
     log.scrollTop = log.scrollHeight;
-    (org.value ? (name.value ? email : name) : org).focus();
+    (org.value ? email : org).focus();
   }
 
   function mount() {
