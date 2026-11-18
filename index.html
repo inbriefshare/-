@@ -222,6 +222,27 @@
 </nav>
 
 <script>
+  // 표지 묶음: 커서 위치에 따라 살짝 입체로 기운다 (마우스가 있는 화면에서만)
+  (function () {
+    var fan = document.querySelector(".fan");
+    if (!fan || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    var MAX = 7;
+    fan.addEventListener("mousemove", function (e) {
+      var r = fan.getBoundingClientRect();
+      var x = (e.clientX - r.left) / r.width - 0.5;
+      var y = (e.clientY - r.top) / r.height - 0.5;
+      fan.classList.add("is-tilting");
+      fan.style.setProperty("--ry", (x * MAX * 2).toFixed(2) + "deg");
+      fan.style.setProperty("--rx", (-y * MAX * 2).toFixed(2) + "deg");
+    });
+    fan.addEventListener("mouseleave", function () {
+      fan.classList.remove("is-tilting");
+      fan.style.setProperty("--ry", "0deg");
+      fan.style.setProperty("--rx", "0deg");
+    });
+  })();
+</script>
+<script>
   // 페이지 버튼 → 상담 챗봇 열기. 챗봇 API가 있으면 쓰고, 없으면 런처 버튼을 누르고, 그것도 없으면 전화로.
   document.addEventListener("click", function (e) {
     var t = e.target.closest("[data-chat]");

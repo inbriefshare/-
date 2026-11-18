@@ -71,11 +71,22 @@ button.link { background: none; border: 0; padding: 0; font: inherit; font-weigh
 .hero-facts { margin: var(--space-xl) 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: var(--space-2xs) var(--space-lg); border-top: var(--rule); padding-top: var(--space-sm); font-size: var(--text-sm); }
 .hero-facts b { color: var(--color-accent); }
 
-.fan { position: relative; height: 380px; }
-.fan img { position: absolute; width: 46%; aspect-ratio: 221 / 309; object-fit: cover; border-radius: 3px; border: 1px solid var(--color-rule); }
-.fan img:nth-child(1) { left: 2%;  top: 34px; transform: rotate(-6deg); }
-.fan img:nth-child(2) { left: 27%; top: 0;    z-index: 2; }
-.fan img:nth-child(3) { left: 52%; top: 34px; transform: rotate(6deg); }
+.fan { position: relative; height: 380px; transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .5s ease-out; }
+.fan.is-tilting { transition-duration: .12s; }
+.fan img { position: absolute; width: 46%; aspect-ratio: 221 / 309; object-fit: cover; border-radius: 3px; border: 1px solid var(--color-rule);
+  transform: translate(var(--tx, 0), var(--ty, 0)) rotate(var(--r, 0deg)) scale(var(--s, 1));
+  transition: transform .35s cubic-bezier(.2, .8, .2, 1), filter .35s ease, box-shadow .35s ease;
+  animation: fan-in .8s cubic-bezier(.2, .8, .2, 1) backwards; }
+.fan img:nth-child(1) { left: 2%;  top: 34px; --r: -6deg; --from: 54%; animation-delay: .15s; }
+.fan img:nth-child(2) { left: 27%; top: 0;    z-index: 2; --from: 0%; }
+.fan img:nth-child(3) { left: 52%; top: 34px; --r: 6deg; --from: -54%; animation-delay: .15s; }
+/* 처음: 세 권이 겹친 채 나타났다가 부채꼴로 펼쳐진다 */
+@keyframes fan-in { from { opacity: 0; transform: translate(var(--from), 12px) rotate(0deg) scale(.96); } }
+/* 마우스를 올린 책이 앞으로 나오고 나머지는 살짝 물러난다 */
+@media (hover: hover) and (pointer: fine) {
+  .fan:hover img { --s: .97; filter: brightness(.93); }
+  .fan img:hover { --s: 1.07; --ty: -8px; z-index: 3; filter: none; box-shadow: 0 18px 36px rgb(20 23 31 / .22); }
+}
 
 .band { border-block: var(--rule); background: var(--color-paper-2); }
 .band img { width: 100%; max-width: 1982px; margin: 0 auto; height: auto; aspect-ratio: 1982 / 417; object-fit: cover; }
@@ -197,4 +208,12 @@ button.link { background: none; border: 0; padding: 0; font: inherit; font-weigh
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 1ms !important; animation: none !important; }
+}
+
+/* 표지 모션은 기기의 '동작 줄이기' 설정과 상관없이 항상 켠다 (위 전체 규칙에서 제외) */
+@media (prefers-reduced-motion: reduce) {
+  .fan { transition-duration: .5s !important; }
+  .fan.is-tilting { transition-duration: .12s !important; }
+  .fan img { transition-duration: .35s !important; animation: fan-in .8s cubic-bezier(.2, .8, .2, 1) backwards !important; }
+  .fan img:nth-child(1), .fan img:nth-child(3) { animation-delay: .15s !important; }
 }
