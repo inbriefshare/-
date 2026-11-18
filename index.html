@@ -227,15 +227,23 @@
     var fan = document.querySelector(".fan");
     if (!fan || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     var MAX = 7;
+    var books = Array.prototype.slice.call(fan.querySelectorAll("img"));
     fan.addEventListener("mousemove", function (e) {
       var r = fan.getBoundingClientRect();
       var x = (e.clientX - r.left) / r.width - 0.5;
       var y = (e.clientY - r.top) / r.height - 0.5;
+      var n = x < -0.14 ? 1 : x > 0.14 ? 3 : 2;
+      if (fan.getAttribute("data-active") !== String(n)) {
+        fan.setAttribute("data-active", n);
+        books.forEach(function (b, i) { b.classList.toggle("on", i === n - 1); });
+      }
       fan.classList.add("is-tilting");
       fan.style.setProperty("--ry", (x * MAX * 2).toFixed(2) + "deg");
       fan.style.setProperty("--rx", (-y * MAX * 2).toFixed(2) + "deg");
     });
     fan.addEventListener("mouseleave", function () {
+      fan.removeAttribute("data-active");
+      books.forEach(function (b) { b.classList.remove("on"); });
       fan.classList.remove("is-tilting");
       fan.style.setProperty("--ry", "0deg");
       fan.style.setProperty("--rx", "0deg");

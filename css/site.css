@@ -75,18 +75,23 @@ button.link { background: none; border: 0; padding: 0; font: inherit; font-weigh
 .fan.is-tilting { transition-duration: .12s; }
 .fan img { position: absolute; width: 46%; aspect-ratio: 221 / 309; object-fit: cover; border-radius: 3px; border: 1px solid var(--color-rule);
   transform: translate(var(--tx, 0), var(--ty, 0)) rotate(var(--r, 0deg)) scale(var(--s, 1));
-  transition: transform .35s cubic-bezier(.2, .8, .2, 1), filter .35s ease, box-shadow .35s ease;
+  transition: transform .35s cubic-bezier(.2, .8, .2, 1), filter .35s ease, box-shadow .35s ease, z-index 0s linear .12s;
   animation: fan-in .8s cubic-bezier(.2, .8, .2, 1) backwards; }
 .fan img:nth-child(1) { left: 2%;  top: 34px; --r: -6deg; --from: 54%; animation-delay: .15s; }
 .fan img:nth-child(2) { left: 27%; top: 0;    z-index: 2; --from: 0%; }
 .fan img:nth-child(3) { left: 52%; top: 34px; --r: 6deg; --from: -54%; animation-delay: .15s; }
 /* 처음: 세 권이 겹친 채 나타났다가 부채꼴로 펼쳐진다 */
 @keyframes fan-in { from { opacity: 0; transform: translate(var(--from), 12px) rotate(0deg) scale(.96); } }
-/* 마우스를 올린 책이 앞으로 나오고 나머지는 살짝 물러난다 */
-@media (hover: hover) and (pointer: fine) {
-  .fan:hover img { --s: .97; filter: brightness(.93); }
-  .fan img:hover { --s: 1.07; --ty: -8px; z-index: 3; filter: none; box-shadow: 0 18px 36px rgb(20 23 31 / .22); }
-}
+/* 마우스를 올린 책이 앞으로 나온다. 어느 책인지는 커서가 묶음의 왼쪽·가운데·오른쪽 중 어디 있는지로 정한다
+   (책끼리 겹친 곳에서 앞뒤가 번갈아 바뀌지 않게). 옆 책은 바깥으로 빠져나온 뒤 앞으로 올라온다. */
+.fan[data-active] img { --s: .97; filter: brightness(.93); }
+.fan[data-active] img.on { --s: 1.06; --ty: -8px; z-index: 3; filter: none; box-shadow: 0 18px 36px rgb(20 23 31 / .22); }
+.fan[data-active="1"] img:nth-child(1) { --tx: -8%; --r: -3deg; }
+.fan[data-active="1"] img:nth-child(2) { --tx: 5%; }
+.fan[data-active="3"] img:nth-child(3) { --tx: 8%; --r: 3deg; }
+.fan[data-active="3"] img:nth-child(2) { --tx: -5%; }
+.fan[data-active="2"] img:nth-child(1) { --tx: -5%; }
+.fan[data-active="2"] img:nth-child(3) { --tx: 5%; }
 
 .band { border-block: var(--rule); background: var(--color-paper-2); }
 .band img { width: 100%; max-width: 1982px; margin: 0 auto; height: auto; aspect-ratio: 1982 / 417; object-fit: cover; }
