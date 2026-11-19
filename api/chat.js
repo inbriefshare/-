@@ -88,7 +88,7 @@ export default async function handler(req, res) {
   const system = product
     ? `${SYSTEM_PROMPT}
 
-# 참고: 이 방문자는 페이지에서 ${product} 견적 버튼을 누르고 들어왔습니다. 권수를 물을 때 이 권을 먼저 제안하되, 다른 권도 함께 주문할 수 있다고 안내합니다.`
+# 참고: 이 방문자는 페이지에서 ${product} 견적 버튼을 누르고 들어왔습니다. 권수를 물을 때 이 권을 먼저 제안하되, 다른 권도 함께 주문할 수 있다고 안내합니다. 방문자가 다른 권의 수량만 말하면 이 권은 0권입니다. 수량은 방문자가 권을 짚어 말한 대로만 넣습니다.`
     : SYSTEM_PROMPT;
   // 미리보기 배포에서 qa- 로 시작하는 시험 대화는 시트에 남기지 않는다 (예상 질문 점검용)
   const skipLog = process.env.VERCEL_ENV !== "production" && sessionId.startsWith("qa-");
@@ -125,7 +125,19 @@ export default async function handler(req, res) {
 
     const formCall = response.content.find((b) => b.type === "tool_use" && b.name === "submit_quote_request");
     if (formCall) {
-      const form = formCall.input || {};
+      const form = { ...(formCall.input || {}) };
+      // 모델이 방문자가 말하지 않은 권에도 같은 수량을 넣는 일이 있다 (예: 3권 버튼으로 들어와 "1권 302권"이라 했는데 3권에도 302).
+      // 방문자 메시지에 "1권/2권/3권"이 한 번이라도 나오면, 언급되지 않은 권의 수량은 0으로 고친다. ("302권"의 "2권"은 세지 않는다)
+      // "1, 3권", "1·2·3권", "1권이랑 3권"도 알아듣고, "전권·모두·전부·세 권"처럼 묶어 말하면 고치지 않는다.
+      const said = new Set();
+      let all = false;
+      for (const m of messages) {
+        if (m.role !== "user") continue;
+        if (/전권|모두|전부|다\s*(?:해|주|필요|같)|세\s*권|세\s*종류|권마다|권별로\s*똑같/.test(m.content)) all = true;
+        const re = /(?<!\d)([123](?:\s*(?:,|·|ㆍ|\/|와|과|및|이랑|랑|하고)\s*[123])*)\s*권/g;
+        for (const hit of m.content.matchAll(re)) for (const d of hit[1].match(/[123]/g)) said.add(`v${d}`);
+      }
+      if (said.size && !all) for (const v of ["v1", "v2", "v3"]) if (!said.has(v) && form[v]) form[v] = 0;
       const reply = text || FORM_REPLY;
       record(reply + " [확인 카드 표시]", form);
       return res.status(200).json({ reply, form });
