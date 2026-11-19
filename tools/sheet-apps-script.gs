@@ -28,12 +28,12 @@ const QUOTES = "견적요청";
 const HEAD = {
   [LIST]: ["대화번호", "시작", "마지막", "소속", "담당자", "연락처", "이메일", "메시지 수", "견적요청", "첫 질문", "대화 보기"],
   [LOG]: ["대화번호", "시각", "기관(방문자)", "챗봇"],
-  [QUOTES]: ["접수시각", "접수번호", "소속 (누르면 대화)", "담당자", "연락처", "이메일", "1권", "2권", "3권", "총 권수", "배송비 (직접 입력)", "합계", "메일 발송", "처리상태", "대화 보기", "최종 견적서"],
+  [QUOTES]: ["접수시각", "접수번호", "소속 (누르면 대화)", "담당자", "연락처", "이메일", "1권", "2권", "3권", "총 권수", "배송비 (직접 입력)", "합계", "메일 발송", "처리상태", "대화 보기", "최종 견적서", "견적서 만들기"],
 };
 const WIDTH = {
   [LIST]: [110, 130, 130, 160, 80, 110, 170, 70, 70, 260, 80],
   [LOG]: [90, 130, 380, 460],
-  [QUOTES]: [130, 130, 170, 80, 110, 170, 60, 60, 60, 70, 110, 90, 90, 90, 80, 150],
+  [QUOTES]: [130, 130, 170, 80, 110, 170, 60, 60, 60, 70, 110, 90, 90, 90, 80, 170, 100],
 };
 
 // 대화내용 색
@@ -42,7 +42,20 @@ const C_USER = "#FFF3D6"; // 기관(방문자) 말
 const C_BOT = "#E7F0FE"; // 챗봇 답변
 const C_SYS = "#E6F4EA"; // 견적 접수 같은 알림
 const C_INPUT = "#FFF8C5"; // 담당자가 직접 적는 칸
-const PENDING = "배송비를 적으면 자동으로 만들어져요";
+const PENDING = "숫자 확인 후 오른쪽 칸을 체크하면 만들어져요";
+const STALE = "숫자가 바뀌었어요 · 다시 체크해 주세요";
+const MAKE_COL = 17; // '견적서 만들기' 체크칸
+const PRICE = { v1: 5000, v2: 3000, v3: 3000 }; // 합계 칸 계산용 (사이트의 정가와 같게)
+
+// 총 권수·합계를 수량·배송비 칸에서 바로 계산하는 식과 체크칸을 넣는다
+function setRowFormulas_(qs, row) {
+  qs.getRange(row, 10).setFormula(`=N(G${row})+N(H${row})+N(I${row})`);
+  qs.getRange(row, 12).setFormula(
+    `=IF(K${row}="","",N(G${row})*${PRICE.v1}+N(H${row})*${PRICE.v2}+N(I${row})*${PRICE.v3}+K${row})`,
+  );
+  qs.getRange(row, 11).setBackground(C_INPUT).setNumberFormat("#,##0");
+  qs.getRange(row, MAKE_COL).insertCheckboxes().uncheck();
+}
 const MAIL_COL = 13;
 const STATUS_COL = 14;
 
@@ -243,8 +256,8 @@ function doPost(e) {
       const qrow = qs.getLastRow();
       // 합계 = 도서 금액 + 담당자가 적은 배송비. 배송비 칸은 노란색으로 표시하고 자동 계산값을 메모로 남긴다.
       const items = q.itemsTotal != null ? q.itemsTotal : (q.total || 0) - (q.shipping || 0);
-      qs.getRange(qrow, 12).setFormula(`=IF(K${qrow}="","",${items}+K${qrow})`);
-      const ship = qs.getRange(qrow, 11).setBackground(C_INPUT).setNumberFormat("#,##0");
+      setRowFormulas_(qs, qrow);
+      const ship = qs.getRange(qrow, 11);
       if (q.boxes) ship.setNote(`참고(자동 계산): ${q.boxes}박스 기준 ${Number(q.suggestedShipping || 0).toLocaleString("ko-KR")}원
 도서 금액 ${Number(items).toLocaleString("ko-KR")}원`);
       qs.getRange(qrow, 16).setFontColor("#8A929C");
@@ -407,8 +420,18 @@ function resetAllRecords() {
 // 처음 한 번 installTrigger를 실행해 두어야 한다.
 function onQuoteEdit(e) {
   const r = e && e.range;
-  if (!r || r.getSheet().getName() !== QUOTES || r.getColumn() > 11 || r.getLastColumn() < 11 || r.getRow() < 2) return;
-  for (let row = r.getRow(); row <= r.getLastRow(); row++) makeFinal_(row);
+  if (!r || r.getSheet().getName() !== QUOTES || r.getRow() < 2) return;
+  const qs = r.getSheet();
+  for (let row = r.getRow(); row <= r.getLastRow(); row++) {
+    if (r.getColumn() <= MAKE_COL && r.getLastColumn() >= MAKE_COL && qs.getRange(row, MAKE_COL).getValue() === true) {
+      makeFinal_(row);
+      qs.getRange(row, MAKE_COL).uncheck();
+    } else if (r.getColumn() <= 11 && r.getLastColumn() >= 7) {
+      // 수량·배송비를 고쳤다: 이미 만든 견적서가 있으면 다시 만들라고 표시만 한다
+      const p = qs.getRange(row, 16);
+      if (p.getFormula() || p.getValue() === STALE) p.setValue(STALE).setFontColor("#B3261E");
+    }
+  }
 }
 
 function makeFinal_(row) {
@@ -418,7 +441,7 @@ function makeFinal_(row) {
   const cell = qs.getRange(row, 16);
   if (!v[1]) return;
   if (v[10] === "" || v[10] === null) {
-    cell.setValue(PENDING).setFontColor("#8A929C");
+    cell.setValue("배송비를 먼저 적어 주세요 (무료면 0)").setFontColor("#B3261E");
     return;
   }
   const shipping = Number(v[10]);
@@ -471,5 +494,22 @@ function formatTimes() {
   sheet_(LIST).getRange("B:C").setNumberFormat("yyyy-mm-dd hh:mm:ss");
   sheet_(LOG).getRange("B:B").setNumberFormat("yyyy-mm-dd hh:mm:ss");
   sheet_(QUOTES).getRange("A:A").setNumberFormat("yyyy-mm-dd hh:mm:ss");
+  return "ok";
+}
+
+// 한 번만 실행: 견적요청 탭을 '체크해서 만들기' 방식으로 바꾼다 (기존 줄의 PDF 링크는 그대로 둔다)
+function upgradeManualPdf() {
+  const qs = sheet_(QUOTES);
+  qs.getRange(1, 1, 1, HEAD[QUOTES].length).setValues([HEAD[QUOTES]]).setFontWeight("bold").setBackground("#EDF2FA");
+  qs.getRange(1, 11).setBackground(C_INPUT);
+  WIDTH[QUOTES].forEach((w, i) => qs.setColumnWidth(i + 1, w));
+  qs.getRange(1, MAKE_COL).setNote("수량·배송비를 확인한 뒤 체크하면 그 숫자로 최종 견적서 PDF를 만들어요. 만든 뒤 체크는 자동으로 풀려요.");
+  for (let row = 2; row <= qs.getLastRow(); row++) {
+    if (!qs.getRange(row, 2).getValue()) continue;
+    setRowFormulas_(qs, row);
+    const p = qs.getRange(row, 16);
+    if (!p.getFormula()) p.setValue(PENDING).setFontColor("#8A929C");
+  }
+  qs.getRange(2, MAKE_COL, qs.getMaxRows() - 1, 1).setHorizontalAlignment("center");
   return "ok";
 }
