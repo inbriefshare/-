@@ -214,7 +214,7 @@ function upsertList_(sid, info) {
   }
 }
 
-// 견적서 PDF를 드라이브의 '상상력놀이터 견적서' 폴더에 저장한다. 공유 설정은 바꾸지 않으므로 이 계정(과 공유받은 사람)만 열 수 있다.
+// 견적서 PDF를 드라이브의 '상상력놀이터 견적서' 폴더에 저장한다. 시트에서 누구나 열 수 있게 '링크가 있는 사람 보기'로 공유한다.
 const PDF_FOLDER = "상상력놀이터 견적서";
 function savePdf_(name, base64, replaceKey) {
   const it = DriveApp.getFoldersByName(PDF_FOLDER);
@@ -228,6 +228,7 @@ function savePdf_(name, base64, replaceKey) {
   const blob = Utilities.newBlob(Utilities.base64Decode(base64), "application/pdf", "quote.pdf");
   const file = folder.createFile(blob);
   file.setName(fileName); // blob 이름에 한글을 넣으면 깨지므로 만든 뒤 이름을 바꾼다
+  // 공유는 폴더의 '링크가 있는 모든 사용자 보기' 설정을 이어받는다 (파일마다 setSharing을 부르면 '액세스 거부' 오류가 난다)
   return file.getUrl();
 }
 
@@ -512,4 +513,13 @@ function upgradeManualPdf() {
   }
   qs.getRange(2, MAKE_COL, qs.getMaxRows() - 1, 1).setHorizontalAlignment("center");
   return "ok";
+}
+
+// 한 번만 실행: 견적서 폴더와 이미 만든 PDF를 '링크가 있는 사람 보기'로 공유한다
+function sharePdfLinks() {
+  const it = DriveApp.getFoldersByName(PDF_FOLDER);
+  if (!it.hasNext()) return "no folder";
+  const folder = it.next();
+  folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return "folder shared (files inherit)";
 }
