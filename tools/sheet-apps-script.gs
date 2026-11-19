@@ -15,7 +15,7 @@
  */
 
 const SECRET = "여기에_비밀값";
-// 시트 주소의 /d/와 /edit 사이 값
+// 시트 주소의 /d/와 /edit 사이 값. 기존 업무 시트에 넣어도 챗봇 탭 3개만 맨 뒤에 추가된다.
 const SHEET_ID = "";
 const TITLE = "노인일자리 워크북 챗봇문의 기록";
 // 최종 견적서 PDF를 만드는 사이트 주소
@@ -54,7 +54,7 @@ function sheet_(name) {
   const ss = ss_();
   let sh = ss.getSheetByName(name);
   if (!sh) {
-    sh = ss.insertSheet(name);
+    sh = ss.insertSheet(name, ss.getSheets().length); // 맨 뒤에 붙인다
     sh.getRange(1, 1, 1, HEAD[name].length).setValues([HEAD[name]]).setFontWeight("bold").setBackground("#EDF2FA");
     sh.setFrozenRows(1);
     WIDTH[name].forEach((w, i) => sh.setColumnWidth(i + 1, w));
@@ -271,9 +271,8 @@ function out_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// 처음 한 번 실행: 시트 만들기, 제목·서식 적용, 드라이브 권한 승인
+// 처음 한 번 실행: 챗봇 탭 만들기, 서식 적용, 드라이브 권한 승인 (파일 제목·기존 탭은 바꾸지 않는다)
 function setup() {
-  ss_().rename(TITLE);
   [LIST, LOG, QUOTES].forEach(sheet_);
   formatQuoteSheet_(sheet_(QUOTES));
   DriveApp.getRootFolder();
@@ -465,4 +464,12 @@ function installTrigger() {
   WIDTH[QUOTES].forEach((w, i) => qs.setColumnWidth(i + 1, w));
   qs.getRange(1, 11).setBackground(C_INPUT);
   return "trigger installed";
+}
+
+// 시각 칸을 시:분:초까지 표시한다 (다른 시트에서 기록을 옮겨 온 경우)
+function formatTimes() {
+  sheet_(LIST).getRange("B:C").setNumberFormat("yyyy-mm-dd hh:mm:ss");
+  sheet_(LOG).getRange("B:B").setNumberFormat("yyyy-mm-dd hh:mm:ss");
+  sheet_(QUOTES).getRange("A:A").setNumberFormat("yyyy-mm-dd hh:mm:ss");
+  return "ok";
 }
