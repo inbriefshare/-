@@ -98,7 +98,7 @@ export default async function handler(req, res) {
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 4000,
-      output_config: { effort: "low" },
+      output_config: { effort: "medium" },
       cache_control: { type: "ephemeral" },
       system,
       tools: TOOLS,
