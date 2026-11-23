@@ -166,6 +166,9 @@ button.link { background: none; border: 0; padding: 0; font: inherit; font-weigh
 
 /* ── 휴대폰 하단 고정 바 ─────────────── */
 .mbar { display: none; }
+.sec--quote .sec-head { text-align: center; margin-inline: auto; }
+.quote-box { max-width: 760px; margin: var(--space-lg) auto 0; scroll-margin-top: 80px; }
+#quote { scroll-margin-top: 64px; }
 
 @media (max-width: 960px) {
   .book { grid-template-columns: 80px minmax(0, 1fr); }
@@ -197,7 +200,7 @@ button.link { background: none; border: 0; padding: 0; font: inherit; font-weigh
 
   body { padding-bottom: calc(var(--bar-h) + env(safe-area-inset-bottom, 0px)); }
   .mbar {
-    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--space-2xs);
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: var(--space-2xs);
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
     padding: var(--space-2xs) var(--space-sm) calc(var(--space-2xs) + env(safe-area-inset-bottom, 0px));
     background: var(--color-paper); border-top: var(--rule);

@@ -213,7 +213,7 @@ export async function buildQuotePdf({ quoteNo, date, customer, quote, stampPng }
   let ny = payTop + ROW * 2 + 12;
   for (const line of [
     `· 견적 유효기간: ${validUntil}까지     · 도서(면세) 상품으로 부가세가 없습니다.`,
-    `· 문의: 카카오톡 mango4024 · ${SUPPLIER.mobile} · ${SUPPLIER.email}`,
+    `· 문의: ${SUPPLIER.mobile} · ${SUPPLIER.email}`,
   ]) {
     cell(line, L, END, ny, 12, { size: 7.5, color: GRAY, pad: 0 });
     ny += 12;

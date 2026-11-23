@@ -18,7 +18,7 @@ const TOOLS = [
   {
     name: "submit_quote_request",
     description:
-      "소속 기관, 이메일, 권별 수량을 대화로 모두 받았을 때 호출한다. 담당자 이름·연락처는 묻지 않는다. 화면에 확인 카드가 뜨고 방문자가 '견적 요청하기'를 누르면 접수된다. 대화에서 들은 값만 넣고 지어내지 않는다.",
+      "소속 기관, 이메일, 권별 수량을 대화로 모두 받았을 때 호출한다. 담당자 이름·연락처는 묻지 않는다. 화면 위 견적 카드에 값이 채워지고 방문자가 '견적 요청하기'를 누르면 접수된다. 대화에서 들은 값만 넣고 지어내지 않는다.",
     input_schema: {
       type: "object",
       properties: {
@@ -31,8 +31,8 @@ const TOOLS = [
     },
   },
 ];
-const FORM_REPLY = "말씀해 주신 내용을 아래 카드에 정리했습니다. 확인하시고 '견적 요청하기'를 눌러 주세요.";
-const FALLBACK_REPLY = `죄송합니다. 지금은 답변을 드리기 어렵습니다. 카카오톡(mango4024)이나 전화(${PHONE})로 문의해 주세요.`;
+const FORM_REPLY = "말씀해 주신 내용을 위 견적 카드에 채워 두었어요. 확인하시고 '견적 요청하기'를 눌러 주세요.";
+const FALLBACK_REPLY = `죄송합니다. 지금은 답변을 드리기 어렵습니다. 위 카드로 견적을 요청하시거나 전화(${PHONE})로 문의해 주세요.`;
 
 // 같은 인스턴스 안에서의 간단한 사용 제한 (IP당 10분에 40회)
 const hits = new Map();
@@ -114,11 +114,17 @@ export default async function handler(req, res) {
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("\n\n")
-      // 모델이 가끔 영어로 된 속생각(답을 어떻게 쓸지 메모)을 답 앞에 섞는다. 답은 항상 한국어이므로
-      // 한글이 한 글자도 없고 영어가 많은 문단은 버린다.
-      .split(/\n{2,}/)
-      .filter((para) => /[가-힣]/.test(para) || (para.match(/[A-Za-z]/g) || []).length < 15)
-      .join("\n\n")
+      // 모델이 가끔 영어·일본어로 된 속생각(답을 어떻게 쓸지 메모)을 답 앞에 섞는다. 답은 항상 한국어이므로
+      // 일본 글자가 들어간 줄, 한글보다 영어가 많은 줄(영어 15자 이상)은 버린다. 메일 주소·URL은 영어로 세지 않는다.
+      .split(/\n/)
+      .filter((line) => {
+        if (/[぀-ヿ]/.test(line)) return false;
+        const latin = (line.replace(/[\w.+-]+@[\w-]+\.[\w.]+|https?:\/\/\S+/g, "").match(/[A-Za-z]/g) || []).length;
+        const hangul = (line.match(/[가-힣]/g) || []).length;
+        return latin < 15 || hangul > latin;
+      })
+      .join("\n")
+      .replace(/\n{3,}/g, "\n\n")
       .replace(/\*\*(.+?)\*\*/g, "$1") // 챗봇 창은 마크다운을 그리지 않으므로 굵게·제목 기호를 지운다
       .replace(/^#{1,6}\s+/gm, "")
       .trim();
